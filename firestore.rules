@@ -1,0 +1,277 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isDocOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Check if user is not suspended in the system
+    function isNotSuspended() {
+      return !exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+             get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status != 'suspenso';
+    }
+
+    // SUPER_ADMIN (Platform Owner exclusively)
+    function isSuperAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.role == 'SUPER_ADMIN') ||
+        (request.auth.token.email == 'juliano.soares.inacio@gmail.com') ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'SUPER_ADMIN')
+      );
+    }
+
+    // FIELD_ADMIN (Field testing administrators)
+    function isFieldAdmin() {
+      return isSignedIn() && isNotSuspended() && (
+        (request.auth.token.role == 'FIELD_ADMIN') ||
+        (request.auth.token.role == 'ADMIN') ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'FIELD_ADMIN' ||
+          get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'ADMIN'))
+      );
+    }
+
+    // Any authorized active administrator
+    function isAnyAdmin() {
+      return isSuperAdmin() || isFieldAdmin();
+    }
+
+    // Check area authorization for operational data
+    function canAccessData(data) {
+      return isSuperAdmin() ||
+        (isFieldAdmin() && (
+          ('ownerAdminUid' in data && data.ownerAdminUid == request.auth.uid) ||
+          ('userId' in data && data.userId == request.auth.uid)
+        )) ||
+        (isSignedIn() && 'userId' in data && data.userId == request.auth.uid);
+    }
+
+    // Entity Validations
+    function isValidUser(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.displayName is string && data.displayName.size() <= 150 &&
+             (!('farmName' in data) || (data.farmName is string && data.farmName.size() <= 150)) &&
+             (!('activity' in data) || (data.activity is string && data.activity.size() <= 100)) &&
+             (!('role' in data) || (data.role != 'SUPER_ADMIN' || isSuperAdmin()));
+    }
+
+    function isValidProducer(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 200)) &&
+             (!('mainActivity' in data) || (data.mainActivity is string && data.mainActivity.size() <= 100));
+    }
+
+    function isValidProperty(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             (!('location' in data) || (data.location is string && data.location.size() <= 200)) &&
+             (!('sizeHectares' in data) || (data.sizeHectares is number)) &&
+             (!('activityType' in data) || (data.activityType is string && data.activityType.size() <= 100));
+    }
+
+    function isValidProduction(data) {
+      return data.product is string && data.product.size() > 0 && data.product.size() <= 150 &&
+             data.date is string && data.date.size() <= 30 &&
+             data.quantity is number &&
+             data.unit is string && data.unit.size() <= 30 &&
+             (!('areaPlot' in data) || (data.areaPlot is string && data.areaPlot.size() <= 100)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidCost(data) {
+      return data.date is string && data.date.size() <= 30 &&
+             data.category is string && data.category.size() <= 50 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 200 &&
+             data.amount is number &&
+             (!('supplier' in data) || (data.supplier is string && data.supplier.size() <= 150)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidInventory(data) {
+      return data.item is string && data.item.size() > 0 && data.item.size() <= 150 &&
+             data.unit is string && data.unit.size() <= 30 &&
+             data.currentQuantity is number &&
+             data.minQuantity is number &&
+             (!('unitCost' in data) || (data.unitCost is number)) &&
+             (!('supplier' in data) || (data.supplier is string && data.supplier.size() <= 150)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidSale(data) {
+      return data.date is string && data.date.size() <= 30 &&
+             data.product is string && data.product.size() > 0 && data.product.size() <= 150 &&
+             data.quantity is number &&
+             data.unit is string && data.unit.size() <= 30 &&
+             data.unitPrice is number &&
+             data.totalAmount is number &&
+             (!('customer' in data) || (data.customer is string && data.customer.size() <= 150)) &&
+             (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidCustomer(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+             (!('city' in data) || (data.city is string && data.city.size() <= 100)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    function isValidSupplier(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
+             (!('suppliedProduct' in data) || (data.suppliedProduct is string && data.suppliedProduct.size() <= 150)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
+    }
+
+    // Rules for /admins/{adminId} - Contas Administrativas
+    // Somente o SUPER_ADMIN pode cadastrar, suspender, reativar ou alterar privilégios
+    match /admins/{adminId} {
+      allow get: if isSignedIn();
+      allow list: if isSuperAdmin();
+      allow write: if isSuperAdmin(); // Ninguém pode autoatribuir privilégios ou suspender admins exceto SUPER_ADMIN
+    }
+
+    // Rules for /audit_logs/{logId} - Logs de Auditoria
+    // Registros são estritamente imutáveis. Nenhum administrador de campo pode apagar ou alterar logs.
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if false; // Imutabilidade garantida
+    }
+
+    // Rules for /producers/{producerId} - Produtores Rurais
+    match /producers/{producerId} {
+      allow get, list: if isSignedIn() && (
+        isSuperAdmin() ||
+        (isFieldAdmin() && (resource.data.ownerAdminUid == request.auth.uid || resource.data.createdBy == request.auth.uid))
+      );
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(producerId) && isValidProducer(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && (
+        isSuperAdmin() || (resource.data.ownerAdminUid == request.auth.uid && incoming().ownerAdminUid == resource.data.ownerAdminUid)
+      ) && isValidProducer(incoming());
+      allow delete: if isSignedIn() && (
+        isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid)
+      );
+    }
+
+    // Rules for /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAnyAdmin();
+      allow list: if isSuperAdmin();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if (isOwner(userId) || isSuperAdmin()) && isValidUser(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSuperAdmin();
+    }
+
+    // Rules for /properties/{propertyId}
+    match /properties/{propertyId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(propertyId) && isValidProperty(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidProperty(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+
+    // Rules for /production/{productionId}
+    match /production/{productionId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(productionId) && isValidProduction(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidProduction(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+
+    // Rules for /costs/{costId}
+    match /costs/{costId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(costId) && isValidCost(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidCost(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+
+    // Rules for /inventory/{inventoryId}
+    match /inventory/{inventoryId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(inventoryId) && isValidInventory(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidInventory(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+
+    // Rules for /sales/{saleId}
+    match /sales/{saleId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(saleId) && isValidSale(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidSale(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+
+    // Rules for /customers/{customerId}
+    match /customers/{customerId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(customerId) && isValidCustomer(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidCustomer(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+
+    // Rules for /suppliers/{supplierId}
+    match /suppliers/{supplierId} {
+      allow get: if canAccessData(resource.data);
+      allow list: if isSignedIn() && (isSuperAdmin() || (isFieldAdmin() && resource.data.ownerAdminUid == request.auth.uid) || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isAnyAdmin() && isValidId(supplierId) && isValidSupplier(incoming()) && (
+        isSuperAdmin() || incoming().ownerAdminUid == request.auth.uid || incoming().userId == request.auth.uid
+      );
+      allow update: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data) && isValidSupplier(incoming());
+      allow delete: if isSignedIn() && isAnyAdmin() && canAccessData(resource.data);
+    }
+  }
+}

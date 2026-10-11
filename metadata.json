@@ -1,0 +1,6 @@
+{
+  "name": "AgroGest",
+  "description": "Do campo para a gestão: saiba quanto produz, quanto gasta e quanto ganha. Plataforma de gestão rural para pequenos produtores e agricultura familiar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,245 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Perfil do produtor rural cadastrado",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 150 },
+        "farmName": { "type": "string", "maxLength": 150 },
+        "activity": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "email", "displayName"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Dados da propriedade rural",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "location": { "type": "string", "maxLength": 200 },
+        "sizeHectares": { "type": "number" },
+        "activityType": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "name"]
+    },
+    "Production": {
+      "title": "Production",
+      "description": "Registro de colheita ou produção rural",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "product": { "type": "string", "maxLength": 150 },
+        "date": { "type": "string", "maxLength": 30 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 30 },
+        "areaPlot": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "product", "date", "quantity", "unit"]
+    },
+    "Cost": {
+      "title": "Cost",
+      "description": "Registro de despesas e custos operacionais",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "category": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 200 },
+        "amount": { "type": "number" },
+        "supplier": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "date", "category", "description", "amount"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Item no estoque de insumos ou produtos da propriedade",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "item": { "type": "string", "maxLength": 150 },
+        "unit": { "type": "string", "maxLength": 30 },
+        "currentQuantity": { "type": "number" },
+        "minQuantity": { "type": "number" },
+        "unitCost": { "type": "number" },
+        "supplier": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "item", "unit", "currentQuantity", "minQuantity"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Registro de venda de produtos agrícolas",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 30 },
+        "product": { "type": "string", "maxLength": 150 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 30 },
+        "unitPrice": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "customer": { "type": "string", "maxLength": 150 },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "date", "product", "quantity", "unit", "unitPrice", "totalAmount"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Cadastro de cliente/comprador",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "name"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Cadastro de fornecedor de insumos e serviços",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "suppliedProduct": { "type": "string", "maxLength": 150 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "name"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Conta administrativa autorizada (SUPER_ADMIN ou FIELD_ADMIN)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "name": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "maxLength": 20 },
+        "status": { "type": "string", "maxLength": 20 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "lastLoginAt": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "email", "role"]
+    },
+    "Producer": {
+      "title": "Producer",
+      "description": "Produtor rural administrado e vinculado a uma área de campo",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "ownerAdminUid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "cpfCnpj": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 200 },
+        "mainActivity": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "maxLength": 20 },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["ownerAdminUid", "name", "createdBy"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Registro imutável de auditoria de ações na plataforma AgroGest",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 256 },
+        "userName": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "maxLength": 30 },
+        "action": { "type": "string", "maxLength": 50 },
+        "recordType": { "type": "string", "maxLength": 50 },
+        "recordId": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string" },
+        "ownerAdminUid": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["userId", "userEmail", "role", "action", "recordType", "details", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Registro de contas administrativas pré-autorizadas"
+    },
+    "/producers/{producerId}": {
+      "schema": "Producer",
+      "description": "Produtores rurais cadastrados e vinculados ao administrador de campo"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Logs de auditoria imutáveis com acesso exclusivo para SUPER_ADMIN"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Documento de perfil e preferências do usuário produtor"
+    },
+    "/properties/{propertyId}": {
+      "schema": "Property",
+      "description": "Propriedades rurais vinculadas ao produtor"
+    },
+    "/production/{productionId}": {
+      "schema": "Production",
+      "description": "Registros de colheita e produção"
+    },
+    "/costs/{costId}": {
+      "schema": "Cost",
+      "description": "Registros de despesas e custos operacionais"
+    },
+    "/inventory/{inventoryId}": {
+      "schema": "InventoryItem",
+      "description": "Itens mantidos no estoque do produtor"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Registros de vendas realizadas"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Clientes compradores da propriedade"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Fornecedores de insumos da propriedade"
+    }
+  }
+}
